@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LeaseVault — Property Agreement Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f1a;
+    --surface: #101726;
+    --surface2: #161f30;
+    --surface3: #1c2840;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8edf5;
+    --text-muted: #6b7a99;
+    --text-dim: #3d4d6e;
+    --accent: #4f9cf9;
+    --accent-glow: rgba(79,156,249,0.15);
+    --green: #34d399;
+    --green-bg: rgba(52,211,153,0.1);
+    --amber: #fbbf24;
+    --amber-bg: rgba(251,191,36,0.1);
+    --red: #f87171;
+    --red-bg: rgba(248,113,113,0.1);
+    --purple: #a78bfa;
+    --purple-bg: rgba(167,139,250,0.1);
+    --radius: 12px;
+    --radius-lg: 18px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid noise texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      radial-gradient(ellipse 80% 60% at 20% 0%, rgba(79,156,249,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(167,139,250,0.05) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,15,26,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 64px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .logo-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+  .logo-text span { color: var(--accent); }
+
+  .header-actions {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 8px; border: none;
+    font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-ghost {
+    background: transparent; color: var(--text-muted);
+    border: 1px solid var(--border2);
+  }
+  .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+  .btn-primary {
+    background: var(--accent); color: #fff;
+    box-shadow: 0 0 20px rgba(79,156,249,0.3);
+  }
+  .btn-primary:hover { background: #3d8ef0; transform: translateY(-1px); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  /* MAIN LAYOUT */
+  .main { display: flex; min-height: calc(100vh - 64px); position: relative; z-index: 1; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 240px; flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .sidebar-section {
+    font-size: 10px; font-weight: 600; letter-spacing: 1.2px;
+    color: var(--text-dim); padding: 16px 12px 6px; text-transform: uppercase;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 8px;
+    font-size: 13.5px; font-weight: 400; color: var(--text-muted);
+    cursor: pointer; transition: all 0.15s; border: none; background: none;
+    width: 100%; text-align: left;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--accent-glow); color: var(--accent); font-weight: 500; }
+  .nav-item .icon { width: 16px; text-align: center; font-size: 14px; }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--red-bg); color: var(--red);
+    font-size: 10px; font-weight: 600; padding: 2px 7px;
+    border-radius: 20px; font-family: 'DM Mono', monospace;
+  }
+  .nav-badge.amber { background: var(--amber-bg); color: var(--amber); }
+  .nav-badge.green { background: var(--green-bg); color: var(--green); }
+
+  /* CONTENT */
+  .content { flex: 1; padding: 28px 32px; overflow: auto; }
+
+  /* SETUP BANNER */
+  .setup-banner {
+    background: linear-gradient(135deg, rgba(79,156,249,0.1), rgba(167,139,250,0.08));
+    border: 1px solid rgba(79,156,249,0.2);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    margin-bottom: 28px;
+    display: flex; align-items: flex-start; gap: 16px;
+  }
+  .setup-banner-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+  .setup-banner h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .setup-banner p { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+  .setup-banner .setup-steps { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .step-tag {
+    font-size: 11px; font-family: 'DM Mono', monospace;
+    background: var(--surface2); color: var(--accent);
+    border: 1px solid rgba(79,156,249,0.2);
+    padding: 3px 10px; border-radius: 20px;
+  }
+
+  /* SETTINGS PANEL */
+  .settings-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    margin-bottom: 20px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1/-1; }
+  label { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+  input, select {
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--text); border-radius: 8px; padding: 9px 12px;
+    font-family: 'Outfit', sans-serif; font-size: 13px;
+    transition: border 0.2s; outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--text-dim); }
+
+  /* STAT CARDS */
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 20px;
+    position: relative; overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+    cursor: pointer;
+  }
+  .stat-card:hover { transform: translateY(-2px); border-color: var(--border2); }
+  .stat-card::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .stat-card.red::after { background: linear-gradient(90deg, var(--red), transparent); }
+  .stat-card.amber::after { background: linear-gradient(90deg, var(--amber), transparent); }
+  .stat-card.green::after { background: linear-gradient(90deg, var(--green), transparent); }
+  .stat-card.blue::after { background: linear-gradient(90deg, var(--accent), transparent); }
+  .stat-label { font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+  .stat-value { font-size: 32px; font-weight: 700; font-family: 'DM Mono', monospace; line-height: 1; }
+  .stat-card.red .stat-value { color: var(--red); }
+  .stat-card.amber .stat-value { color: var(--amber); }
+  .stat-card.green .stat-value { color: var(--green); }
+  .stat-card.blue .stat-value { color: var(--accent); }
+  .stat-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 6px; }
+
+  /* SECTION HEADER */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px; font-weight: 400;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .section-title .dot.red { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .section-title .dot.amber { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+  .section-title .dot.green { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .section-title .dot.blue { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  /* TOOLBAR */
+  .toolbar {
+    display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .search-box {
+    flex: 1; min-width: 200px;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 9px 14px 9px 36px;
+    color: var(--text); font-size: 13px; font-family: 'Outfit', sans-serif;
+    outline: none; transition: border 0.2s;
+    position: relative;
+  }
+  .search-wrap { position: relative; flex: 1; min-width: 200px; }
+  .search-wrap::before {
+    content: '🔍'; position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    font-size: 12px; pointer-events: none;
+  }
+  .search-box:focus { border-color: var(--accent); }
+  .filter-select {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 9px 14px; color: var(--text);
+    font-size: 13px; font-family: 'Outfit', sans-serif; outline: none;
+    cursor: pointer;
+  }
+
+  /* TABLE */
+  .table-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--surface2); }
+  th {
+    padding: 12px 16px; text-align: left;
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.8px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer; user-select: none; white-space: nowrap;
+  }
+  th:hover { color: var(--text); }
+  td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .mono { font-family: 'DM Mono', monospace; font-size: 12px; }
+
+  /* STATUS BADGES */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 500;
+  }
+  .badge-green { background: var(--green-bg); color: var(--green); }
+  .badge-red { background: var(--red-bg); color: var(--red); }
+  .badge-amber { background: var(--amber-bg); color: var(--amber); }
+  .badge-blue { background: rgba(79,156,249,0.12); color: var(--accent); }
+  .badge-purple { background: var(--purple-bg); color: var(--purple); }
+  .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+  /* DAYS PILL */
+  .days-pill {
+    font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500;
+    padding: 3px 8px; border-radius: 6px;
+    display: inline-block;
+  }
+  .days-pill.critical { background: var(--red-bg); color: var(--red); }
+  .days-pill.warning { background: var(--amber-bg); color: var(--amber); }
+  .days-pill.ok { background: var(--green-bg); color: var(--green); }
+  .days-pill.expired { background: rgba(100,100,130,0.15); color: var(--text-dim); }
+
+  /* NOTIFICATION LOG */
+  .notif-list { display: flex; flex-direction: column; gap: 8px; }
+  .notif-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .notif-item .notif-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .notif-icon.email { background: rgba(79,156,249,0.12); }
+  .notif-icon.push { background: var(--purple-bg); }
+  .notif-icon.escalation { background: var(--amber-bg); }
+  .notif-item .notif-body { flex: 1; }
+  .notif-item .notif-title { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+  .notif-item .notif-meta { font-size: 11.5px; color: var(--text-muted); }
+  .notif-item .notif-time { font-size: 11px; color: var(--text-dim); font-family: 'DM Mono', monospace; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 2px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 3px; width: fit-content; margin-bottom: 20px; }
+  .tab { padding: 7px 16px; border-radius: 7px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; border: none; background: none; transition: all 0.15s; }
+  .tab.active { background: var(--accent); color: #fff; }
+
+  /* PAGE */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center; padding: 60px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state .empty-icon { font-size: 40px; margin-bottom: 14px; }
+  .empty-state h3 { font-size: 16px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
+  .empty-state p { font-size: 13px; line-height: 1.6; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200; padding: 20px;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--radius-lg); width: 100%; max-width: 560px;
+    padding: 28px; transform: translateY(12px); transition: transform 0.2s;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .modal-header h2 { font-family: 'DM Serif Display', serif; font-size: 22px; }
+  .modal-close { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 4px; }
+  .modal-close:hover { color: var(--text); }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .detail-item label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.7px; font-weight: 600; }
+  .detail-item .value { font-size: 14px; margin-top: 4px; font-weight: 500; }
+  .detail-item .value.mono { font-family: 'DM Mono', monospace; font-size: 13px; }
+  hr.divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* TOAST */
+  .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius); padding: 12px 16px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; min-width: 280px;
+    animation: slideIn 0.3s ease; box-shadow: var(--shadow);
+  }
+  @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } }
+
+  /* RESPONSIVE */
+  .rent-cell { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--green); }
+
+  /* Last updated */
+  .last-updated { font-size: 11.5px; color: var(--text-dim); font-family: 'DM Mono', monospace; }
+
+  /* Loader */
+  .loader {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .pulse { animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  .help-text { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; line-height: 1.5; }
+
+  /* notification permission */
+  .perm-bar {
+    background: var(--purple-bg); border: 1px solid rgba(167,139,250,0.2);
+    border-radius: var(--radius); padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; font-size: 13px;
+  }
+  .perm-bar span { color: var(--text-muted); }
+  .perm-bar b { color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">🏢</div>
+    <span class="logo-text">Lease<span>Vault</span></span>
+  </div>
+  <div class="header-actions">
+    <span class="last-updated" id="lastUpdated">Not synced</span>
+    <button class="btn btn-ghost btn-sm" onclick="showPage('settings')">⚙ Settings</button>
+    <button class="btn btn-primary btn-sm" onclick="fetchData()" id="syncBtn">
+      ↻ Sync Now
+    </button>
+  </div>
+</header>
+
+<div class="main">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section">Dashboard</div>
+    <button class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+      <span class="icon">◈</span> Overview
+    </button>
+    <button class="nav-item" onclick="showPage('expiring')" id="nav-expiring">
+      <span class="icon">⏳</span> Expiring Soon
+      <span class="nav-badge" id="badge-expiring">0</span>
+    </button>
+    <button class="nav-item" onclick="showPage('escalations')" id="nav-escalations">
+      <span class="icon">📈</span> Escalations Due
+      <span class="nav-badge amber" id="badge-escalations">0</span>
+    </button>
+    <div class="sidebar-section">Agreements</div>
+    <button class="nav-item" onclick="showPage('active')" id="nav-active">
+      <span class="icon">✦</span> Active
+      <span class="nav-badge green" id="badge-active">0</span>
+    </button>
+    <button class="nav-item" onclick="showPage('expired')" id="nav-expired">
+      <span class="icon">✕</span> Expired
+      <span class="nav-badge" id="badge-expired" style="background:var(--surface3);color:var(--text-muted)">0</span>
+    </button>
+    <button class="nav-item" onclick="showPage('all')" id="nav-all">
+      <span class="icon">☰</span> All Leases
+    </button>
+    <div class="sidebar-section">System</div>
+    <button class="nav-item" onclick="showPage('notifications')" id="nav-notifications">
+      <span class="icon">🔔</span> Notifications
+    </button>
+    <button class="nav-item" onclick="showPage('settings')" id="nav-settings">
+      <span class="icon">⚙</span> Settings
+    </button>
+  </nav>
+
+  <!-- CONTENT -->
+  <main class="content">
+
+    <!-- DASHBOARD PAGE -->
+    <div class="page active" id="page-dashboard">
+      <div class="stat-grid">
+        <div class="stat-card red" onclick="showPage('expiring')">
+          <div class="stat-label">Critical Expiry (&lt;30d)</div>
+          <div class="stat-value" id="stat-critical">0</div>
+          <div class="stat-sub">Needs immediate action</div>
+        </div>
+        <div class="stat-card amber" onclick="showPage('expiring')">
+          <div class="stat-label">Expiring Soon (&lt;60d)</div>
+          <div class="stat-value" id="stat-expiring60">0</div>
+          <div class="stat-sub">Send renewal notice</div>
+        </div>
+        <div class="stat-card green" onclick="showPage('active')">
+          <div class="stat-label">Active Agreements</div>
+          <div class="stat-value" id="stat-active-total">0</div>
+          <div class="stat-sub">Across all properties</div>
+        </div>
+        <div class="stat-card blue" onclick="showPage('escalations')">
+          <div class="stat-label">Escalations Due (&lt;60d)</div>
+          <div class="stat-value" id="stat-escalations">0</div>
+          <div class="stat-sub">Rent review needed</div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title"><span class="dot red"></span> Critical — Expiring Within 30 Days</div>
+      </div>
+      <div class="table-wrap" style="margin-bottom:28px">
+        <table>
+          <thead>
+            <tr>
+              <th>Agreement</th><th>Property / Unit</th><th>Tenant</th>
+              <th>Expiry Date</th><th>Days Left</th><th>Rent</th><th>Status</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="critical-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title"><span class="dot amber"></span> Rent Escalations Upcoming</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Agreement</th><th>Property / Unit</th><th>Tenant</th>
+              <th>Escalation Date</th><th>Days Away</th><th>Current Rent</th><th>Escalation %</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="escalation-preview-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- EXPIRING PAGE -->
+    <div class="page" id="page-expiring">
+      <div class="section-header">
+        <div class="section-title"><span class="dot red"></span> Expiring Soon</div>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <input type="text" class="search-box" id="search-expiring" placeholder="Search by tenant, property, unit…" oninput="renderExpiring()">
+        </div>
+        <select class="filter-select" id="filter-expiring-prop" onchange="renderExpiring()">
+          <option value="">All Properties</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Agreement ID</th><th>Property</th><th>Unit</th><th>Tenant</th>
+              <th>Start Date</th><th>Expiry Date</th><th>Days Left</th>
+              <th>Rent</th><th>Reminder 60</th><th>Reminder 30</th><th>Status</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="expiring-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ESCALATIONS PAGE -->
+    <div class="page" id="page-escalations">
+      <div class="section-header">
+        <div class="section-title"><span class="dot amber"></span> Escalations Due</div>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <input type="text" class="search-box" id="search-escalations" placeholder="Search…" oninput="renderEscalations()">
+        </div>
+        <select class="filter-select" id="filter-escalations-prop" onchange="renderEscalations()">
+          <option value="">All Properties</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Agreement ID</th><th>Property</th><th>Unit</th><th>Tenant</th>
+              <th>Escalation Date</th><th>Days Away</th><th>Current Rent</th>
+              <th>Escalation %</th><th>New Rent (Est.)</th><th>Contact</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="escalations-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ACTIVE PAGE -->
+    <div class="page" id="page-active">
+      <div class="section-header">
+        <div class="section-title"><span class="dot green"></span> Active Agreements</div>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <input type="text" class="search-box" id="search-active" placeholder="Search…" oninput="renderActive()">
+        </div>
+        <select class="filter-select" id="filter-active-prop" onchange="renderActive()">
+          <option value="">All Properties</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Agreement ID</th><th>Property</th><th>Unit</th><th>Tenant</th>
+              <th>Start Date</th><th>Expiry Date</th><th>Days Left</th>
+              <th>Rent</th><th>Escalation Date</th><th>Status</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="active-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- EXPIRED PAGE -->
+    <div class="page" id="page-expired">
+      <div class="section-header">
+        <div class="section-title"><span class="dot" style="background:var(--text-dim)"></span> Expired Agreements</div>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <input type="text" class="search-box" id="search-expired" placeholder="Search…" oninput="renderExpired()">
+        </div>
+        <select class="filter-select" id="filter-expired-prop" onchange="renderExpired()">
+          <option value="">All Properties</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Agreement ID</th><th>Property</th><th>Unit</th><th>Tenant</th>
+              <th>Start Date</th><th>Expiry Date</th><th>Expired (Days)</th>
+              <th>Last Rent</th><th>Contact</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="expired-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ALL LEASES PAGE -->
+    <div class="page" id="page-all">
+      <div class="section-header">
+        <div class="section-title"><span class="dot blue"></span> All Lease Agreements</div>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <input type="text" class="search-box" id="search-all" placeholder="Search all fields…" oninput="renderAll()">
+        </div>
+        <select class="filter-select" id="filter-all-prop" onchange="renderAll()">
+          <option value="">All Properties</option>
+        </select>
+        <select class="filter-select" id="filter-all-status" onchange="renderAll()">
+          <option value="">All Statuses</option>
+          <option value="Active">Active</option>
+          <option value="Expired">Expired</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Agreement ID</th><th>Property</th><th>Unit</th><th>Tenant</th>
+              <th>Start Date</th><th>Expiry Date</th><th>Days to Expiry</th>
+              <th>Rent</th><th>Escalation Date</th><th>Esc. %</th><th>Status</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="all-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS PAGE -->
+    <div class="page" id="page-notifications">
+      <div class="section-header">
+        <div class="section-title"><span class="dot blue"></span> Notification Log</div>
+        <button class="btn btn-primary btn-sm" onclick="checkAndSendNotifications(true)">🔔 Run Checks Now</button>
+      </div>
+      <div id="perm-bar-wrap"></div>
+      <div class="notif-list" id="notif-log">
+        <div class="empty-state">
+          <div class="empty-icon">🔔</div>
+          <h3>No notifications yet</h3>
+          <p>Sync your data and run notification checks to see alerts here.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div class="page" id="page-settings">
+      <div class="section-header">
+        <div class="section-title"><span class="dot blue"></span> Configuration</div>
+      </div>
+
+      <div class="setup-banner">
+        <div class="setup-banner-icon">📋</div>
+        <div>
+          <h3>Google Sheets Setup</h3>
+          <p>Publish your Google Sheet as a CSV and paste the URL below. Your sheet must have these column headers in row 1:</p>
+          <div class="setup-steps">
+            <span class="step-tag">Agreement ID</span>
+            <span class="step-tag">Property</span>
+            <span class="step-tag">Unit</span>
+            <span class="step-tag">Tenant Name</span>
+            <span class="step-tag">Start Date</span>
+            <span class="step-tag">Expiry Date</span>
+            <span class="step-tag">Rent</span>
+            <span class="step-tag">Escalation Date</span>
+            <span class="step-tag">Escalation %</span>
+            <span class="step-tag">Contact Email</span>
+            <span class="step-tag">Status</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-grid">
+        <div class="form-group full">
+          <label>Google Sheet CSV URL</label>
+          <input type="text" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/export?format=csv">
+          <p class="help-text">File → Share → Publish to web → Select "Comma-separated values (.csv)" → Publish → Copy link. Or use the direct export URL.</p>
+        </div>
+        <div class="form-group">
+          <label>Email (for notification log)</label>
+          <input type="email" id="notifEmail" placeholder="you@example.com">
+          <p class="help-text">Email notifications require a backend (e.g. EmailJS, SMTP relay). This address is saved for reference and mailto: links.</p>
+        </div>
+        <div class="form-group">
+          <label>Auto-sync interval</label>
+          <select id="syncInterval">
+            <option value="0">Manual only</option>
+            <option value="5">Every 5 minutes</option>
+            <option value="15" selected>Every 15 minutes</option>
+            <option value="30">Every 30 minutes</option>
+            <option value="60">Every hour</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Days for "Expiring Soon" warning</label>
+          <input type="number" id="warnDays" value="60" min="1" max="365">
+        </div>
+        <div class="form-group">
+          <label>Days for "Critical" alert</label>
+          <input type="number" id="criticalDays" value="30" min="1" max="180">
+        </div>
+        <div class="form-group">
+          <label>Escalation advance warning (days)</label>
+          <input type="number" id="escalationWarnDays" value="60" min="1" max="365">
+        </div>
+      </div>
+
+      <div style="margin-top: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+        <button class="btn btn-ghost" onclick="fetchData()">↻ Sync Data Now</button>
+        <button class="btn btn-ghost" onclick="loadDemo()">📦 Load Demo Data</button>
+        <button class="btn btn-ghost" onclick="requestPushPermission()">🔔 Enable Push Notifications</button>
+      </div>
+
+      <hr class="divider">
+      <div style="font-size:13px; color:var(--text-muted); line-height: 1.8;">
+        <b style="color:var(--text)">How to use:</b><br>
+        1. Create a Google Sheet with the column headers listed above.<br>
+        2. Add your lease data row by row. Dates should be in <span style="font-family:monospace;color:var(--accent)">YYYY-MM-DD</span> or <span style="font-family:monospace;color:var(--accent)">DD/MM/YYYY</span> format.<br>
+        3. Publish the sheet as CSV (File → Share → Publish to web).<br>
+        4. Paste the CSV URL in settings above and click Save Settings.<br>
+        5. Click "Sync Data Now" — your leases will appear on the dashboard.<br>
+        6. Enable push notifications for browser alerts 60 and 30 days before expiry/escalation.
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Lease Details</h2>
+      <button class="modal-close" onclick="document.getElementById('detailModal').classList.remove('open')">✕</button>
+    </div>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ──────────────────────────────────────
+//  STATE
+// ──────────────────────────────────────
+let leases = [];
+let settings = {
+  sheetUrl: '',
+  notifEmail: '',
+  syncInterval: 15,
+  warnDays: 60,
+  criticalDays: 30,
+  escalationWarnDays: 60
+};
+let notifLog = [];
+let syncTimer = null;
+let currentPage = 'dashboard';
+
+// ──────────────────────────────────────
+//  INIT
+// ──────────────────────────────────────
+window.onload = () => {
+  loadSettings();
+  applySettingsToUI();
+  loadNotifLog();
+  if (leases.length === 0) loadDemo();
+  renderAll_Pages();
+  scheduleSyncTimer();
+  checkAndSendNotifications(false);
+  requestPushPermission();
+  updatePermBar();
+};
+
+// ──────────────────────────────────────
+//  SETTINGS
+// ──────────────────────────────────────
+function saveSettings() {
+  settings.sheetUrl = document.getElementById('sheetUrl').value.trim();
+  settings.notifEmail = document.getElementById('notifEmail').value.trim();
+  settings.syncInterval = parseInt(document.getElementById('syncInterval').value);
+  settings.warnDays = parseInt(document.getElementById('warnDays').value) || 60;
+  settings.criticalDays = parseInt(document.getElementById('criticalDays').value) || 30;
+  settings.escalationWarnDays = parseInt(document.getElementById('escalationWarnDays').value) || 60;
+  localStorage.setItem('lv_settings', JSON.stringify(settings));
+  scheduleSyncTimer();
+  toast('✅ Settings saved');
+  if (settings.sheetUrl) fetchData();
+}
+function loadSettings() {
+  const s = localStorage.getItem('lv_settings');
+  if (s) settings = { ...settings, ...JSON.parse(s) };
+  const ls = localStorage.getItem('lv_leases');
+  if (ls) leases = JSON.parse(ls);
+}
+function applySettingsToUI() {
+  document.getElementById('sheetUrl').value = settings.sheetUrl || '';
+  document.getElementById('notifEmail').value = settings.notifEmail || '';
+  document.getElementById('syncInterval').value = settings.syncInterval || 15;
+  document.getElementById('warnDays').value = settings.warnDays || 60;
+  document.getElementById('criticalDays').value = settings.criticalDays || 30;
+  document.getElementById('escalationWarnDays').value = settings.escalationWarnDays || 60;
+}
+
+// ──────────────────────────────────────
+//  DEMO DATA
+// ──────────────────────────────────────
+function loadDemo() {
+  const today = new Date();
+  const d = (offset) => {
+    const dt = new Date(today); dt.setDate(dt.getDate() + offset);
+    return dt.toISOString().split('T')[0];
+  };
+  leases = [
+    { 'Agreement ID':'AGR-001','Property':'Sunrise Towers','Unit':'A-201','Tenant Name':'Raj Mehta','Start Date': d(-300),'Expiry Date': d(25),'Rent':'42000','Escalation Date': d(25),'Escalation %':'8','Contact Email':'raj.mehta@email.com','Status':'Active' },
+    { 'Agreement ID':'AGR-002','Property':'Sunrise Towers','Unit':'B-104','Tenant Name':'Priya Sharma','Start Date': d(-280),'Expiry Date': d(18),'Rent':'38000','Escalation Date': d(18),'Escalation %':'7','Contact Email':'priya.s@email.com','Status':'Active' },
+    { 'Agreement ID':'AGR-003','Property':'Green Valley Apts','Unit':'G-301','Tenant Name':'Arjun Nair','Start Date': d(-200),'Expiry Date': d(55),'Rent':'52000','Escalation Date': d(55),'Escalation %':'10','Contact Email':'arjun.nair@email.com','Status':'Active' },
+    { 'Agreement ID':'AGR-004','Property':'Green Valley Apts','Unit':'G-112','Tenant Name':'Sunita Iyer','Start Date': d(-350),'Expiry Date': d(42),'Rent':'29000','Escalation Date': d(42),'Escalation %':'5','Contact Email':'sunita.iyer@email.com','Status':'Active' },
+    { 'Agreement ID':'AGR-005','Property':'Metro Heights','Unit':'M-501','Tenant Name':'Vikram Rao','Start Date': d(-180),'Expiry Date': d(120),'Rent':'68000','Escalation Date': d(50),'Escalation %':'8','Contact Email':'vikram.rao@email.com','Status':'Active' },
+    { 'Agreement ID':'AGR-006','Property':'Metro Heights','Unit':'M-203','Tenant Name':'Deepa Krishnan','Start Date': d(-90),'Expiry Date': d(275),'Rent':'45000','Escalation Date': d(275),'Escalation %':'6','Contact Email':'deepa.k@email.com','Status':'Active' },
+    { 'Agreement ID':'AGR-007','Property':'Sunrise Towers','Unit':'A-105','Tenant Name':'Anil Kumar','Start Date': d(-400),'Expiry Date': d(-15),'Rent':'35000','Escalation Date': d(-15),'Escalation %':'8','Contact Email':'anil.k@email.com','Status':'Expired' },
+    { 'Agreement ID':'AGR-008','Property':'Park View Residency','Unit':'P-201','Tenant Name':'Meena Gupta','Start Date': d(-365),'Expiry Date': d(-30),'Rent':'55000','Escalation Date': d(-30),'Escalation %':'9','Contact Email':'meena.g@email.com','Status':'Expired' },
+    { 'Agreement ID':'AGR-009','Property':'Park View Residency','Unit':'P-103','Tenant Name':'Ravi Joshi','Start Date': d(-60),'Expiry Date': d(305),'Rent':'48000','Escalation Date': d(305),'Escalation %':'7','Contact Email':'ravi.j@email.com','Status':'Active' },
+    { 'Agreement ID':'AGR-010','Property':'Metro Heights','Unit':'M-401','Tenant Name':'Kavita Patel','Start Date': d(-120),'Expiry Date': d(245),'Rent':'62000','Escalation Date': d(30),'Escalation %':'10','Contact Email':'kavita.p@email.com','Status':'Active' },
+  ];
+  localStorage.setItem('lv_leases', JSON.stringify(leases));
+  renderAll_Pages();
+  toast('📦 Demo data loaded — 10 lease agreements');
+}
+
+// ──────────────────────────────────────
+//  FETCH FROM GOOGLE SHEETS
+// ──────────────────────────────────────
+async function fetchData() {
+  if (!settings.sheetUrl) { toast('⚠ No Sheet URL configured — loading demo data'); loadDemo(); return; }
+  const btn = document.getElementById('syncBtn');
+  btn.innerHTML = '<span class="loader"></span> Syncing…';
+  btn.disabled = true;
+  try {
+    // Use CORS proxy for Google Sheets
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(settings.sheetUrl)}`;
+    const res = await fetch(proxyUrl);
+    const data = await res.json();
+    const csv = data.contents;
+    leases = parseCSV(csv);
+    localStorage.setItem('lv_leases', JSON.stringify(leases));
+    document.getElementById('lastUpdated').textContent = 'Synced ' + new Date().toLocaleTimeString();
+    renderAll_Pages();
+    checkAndSendNotifications(true);
+    toast(`✅ Synced ${leases.length} lease records`);
+  } catch(e) {
+    toast('❌ Sync failed: ' + e.message + ' — try loading demo data');
+  }
+  btn.innerHTML = '↻ Sync Now';
+  btn.disabled = false;
+}
+
+function parseCSV(csv) {
+  const lines = csv.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
+  return lines.slice(1).map(line => {
+    const vals = [];
+    let inQ = false, cur = '';
+    for (let ch of line) {
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { vals.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    vals.push(cur.trim());
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = (vals[i] || '').replace(/^"|"$/g,''));
+    return obj;
+  }).filter(r => r['Agreement ID'] || r['Tenant Name']);
+}
+
+// ──────────────────────────────────────
+//  COMPUTED HELPERS
+// ──────────────────────────────────────
+function parseDate(s) {
+  if (!s) return null;
+  // Try YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(s);
+  // Try DD/MM/YYYY
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+    const [d,m,y] = s.split('/');
+    return new Date(`${y}-${m}-${d}`);
+  }
+  return new Date(s);
+}
+function daysFrom(dateStr) {
+  const d = parseDate(dateStr);
+  if (!d || isNaN(d)) return null;
+  const diff = d - new Date();
+  return Math.ceil(diff / 86400000);
+}
+function fmtDate(s) {
+  const d = parseDate(s);
+  if (!d || isNaN(d)) return s || '—';
+  return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+}
+function fmtRent(r) {
+  const n = parseFloat(r);
+  if (isNaN(n)) return r || '—';
+  return '₹' + n.toLocaleString('en-IN');
+}
+function newRent(rent, pct) {
+  const r = parseFloat(rent), p = parseFloat(pct);
+  if (isNaN(r) || isNaN(p)) return '—';
+  return '₹' + (r * (1 + p/100)).toLocaleString('en-IN', {maximumFractionDigits:0});
+}
+function daysColor(days) {
+  if (days === null) return 'expired';
+  if (days < 0) return 'expired';
+  if (days <= 30) return 'critical';
+  if (days <= 60) return 'warning';
+  return 'ok';
+}
+function daysPill(days, label) {
+  if (days === null) return '<span class="days-pill expired">—</span>';
+  if (days < 0) return `<span class="days-pill expired">${Math.abs(days)}d ago</span>`;
+  return `<span class="days-pill ${daysColor(days)}">${days}d</span>`;
+}
+function statusBadge(lease) {
+  const days = daysFrom(lease['Expiry Date']);
+  const explicit = (lease['Status'] || '').toLowerCase();
+  if (explicit === 'expired' || (days !== null && days < 0)) return '<span class="badge badge-red">Expired</span>';
+  if (days !== null && days <= 30) return '<span class="badge badge-red">Critical</span>';
+  if (days !== null && days <= 60) return '<span class="badge badge-amber">Expiring Soon</span>';
+  return '<span class="badge badge-green">Active</span>';
+}
+function reminder60(lease) {
+  const days = daysFrom(lease['Expiry Date']);
+  if (days === null) return '—';
+  if (days <= 60 && days >= 0) return '<span style="color:var(--amber)">⚠ Due</span>';
+  if (days < 0) return '<span style="color:var(--text-dim)">Expired</span>';
+  return `<span style="color:var(--text-muted)">In ${days-60}d</span>`;
+}
+function reminder30(lease) {
+  const days = daysFrom(lease['Expiry Date']);
+  if (days === null) return '—';
+  if (days <= 30 && days >= 0) return '<span style="color:var(--red)">🔴 Due</span>';
+  if (days < 0) return '<span style="color:var(--text-dim)">Expired</span>';
+  return `<span style="color:var(--text-muted)">In ${days-30}d</span>`;
+}
+
+// ──────────────────────────────────────
+//  RENDER HELPERS
+// ──────────────────────────────────────
+function filteredLeases(searchId, propFilterId, statusFilterId) {
+  const q = (document.getElementById(searchId)?.value || '').toLowerCase();
+  const prop = document.getElementById(propFilterId)?.value || '';
+  const status = document.getElementById(statusFilterId)?.value || '';
+  return leases.filter(l => {
+    const match = !q || Object.values(l).some(v => v.toLowerCase().includes(q));
+    const propMatch = !prop || l['Property'] === prop;
+    const statusMatch = !status || (status === 'Active' ? daysFrom(l['Expiry Date']) >= 0 : daysFrom(l['Expiry Date']) < 0);
+    return match && propMatch && statusMatch;
+  });
+}
+function viewBtn(i) {
+  return `<button class="btn btn-ghost btn-sm" onclick="openDetail(${i})">View</button>`;
+}
+function propertyOptions() {
+  const props = [...new Set(leases.map(l => l['Property']).filter(Boolean))];
+  return props.map(p => `<option value="${p}">${p}</option>`).join('');
+}
+function updatePropertyFilters() {
+  const ids = ['filter-expiring-prop','filter-escalations-prop','filter-active-prop','filter-expired-prop','filter-all-prop'];
+  const opts = '<option value="">All Properties</option>' + propertyOptions();
+  ids.forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML = opts; });
+}
+function emptyRow(cols, msg) {
+  return `<tr><td colspan="${cols}" style="text-align:center;padding:40px;color:var(--text-muted)">${msg}</td></tr>`;
+}
+
+// ──────────────────────────────────────
+//  RENDER PAGES
+// ──────────────────────────────────────
+function renderAll_Pages() {
+  updatePropertyFilters();
+  updateBadges();
+  renderDashboard();
+  renderExpiring();
+  renderEscalations();
+  renderActive();
+  renderExpired();
+  renderAll();
+}
+
+function updateBadges() {
+  const critical = leases.filter(l => { const d = daysFrom(l['Expiry Date']); return d !== null && d >= 0 && d <= settings.criticalDays; });
+  const expiring = leases.filter(l => { const d = daysFrom(l['Expiry Date']); return d !== null && d >= 0 && d <= settings.warnDays; });
+  const escalations = leases.filter(l => { const d = daysFrom(l['Escalation Date']); return d !== null && d >= 0 && d <= settings.escalationWarnDays; });
+  const active = leases.filter(l => { const d = daysFrom(l['Expiry Date']); return d !== null && d >= 0; });
+  const expired = leases.filter(l => { const d = daysFrom(l['Expiry Date']); return d !== null && d < 0; });
+
+  document.getElementById('badge-expiring').textContent = expiring.length;
+  document.getElementById('badge-escalations').textContent = escalations.length;
+  document.getElementById('badge-active').textContent = active.length;
+  document.getElementById('badge-expired').textContent = expired.length;
+  document.getElementById('stat-critical').textContent = critical.length;
+  document.getElementById('stat-expiring60').textContent = expiring.length;
+  document.getElementById('stat-active-total').textContent = active.length;
+  document.getElementById('stat-escalations').textContent = escalations.length;
+}
+
+function renderDashboard() {
+  // Critical table
+  const criticals = leases.filter(l => { const d = daysFrom(l['Expiry Date']); return d !== null && d >= 0 && d <= settings.criticalDays; })
+    .sort((a,b) => daysFrom(a['Expiry Date']) - daysFrom(b['Expiry Date']));
+  const ctbody = document.getElementById('critical-tbody');
+  if (criticals.length === 0) {
+    ctbody.innerHTML = emptyRow(8, '✅ No leases expiring within ' + settings.criticalDays + ' days');
+  } else {
+    ctbody.innerHTML = criticals.map((l, i) => {
+      const idx = leases.indexOf(l);
+      const days = daysFrom(l['Expiry Date']);
+      return `<tr>
+        <td class="mono">${l['Agreement ID']}</td>
+        <td>${l['Property']}<br><small style="color:var(--text-muted)">${l['Unit']}</small></td>
+        <td>${l['Tenant Name']}</td>
+        <td>${fmtDate(l['Expiry Date'])}</td>
+        <td>${daysPill(days)}</td>
+        <td class="rent-cell">${fmtRent(l['Rent'])}</td>
+        <td>${statusBadge(l)}</td>
+        <td>${viewBtn(idx)}</td>
+      </tr>`;
+    }).join('');
+  }
+  // Escalation preview
+  const escs = leases.filter(l => { const d = daysFrom(l['Escalation Date']); return d !== null && d >= 0 && d <= settings.escalationWarnDays; })
+    .sort((a,b) => daysFrom(a['Escalation Date']) - daysFrom(b['Escalation Date']));
+  const etbody = document.getElementById('escalation-preview-tbody');
+  if (escs.length === 0) {
+    etbody.innerHTML = emptyRow(8, '✅ No escalations due within ' + settings.escalationWarnDays + ' days');
+  } else {
+    etbody.innerHTML = escs.map(l => {
+      const idx = leases.indexOf(l);
+      const days = daysFrom(l['Escalation Date']);
+      return `<tr>
+        <td class="mono">${l['Agreement ID']}</td>
+        <td>${l['Property']}<br><small style="color:var(--text-muted)">${l['Unit']}</small></td>
+        <td>${l['Tenant Name']}</td>
+        <td>${fmtDate(l['Escalation Date'])}</td>
+        <td>${daysPill(days)}</td>
+        <td class="rent-cell">${fmtRent(l['Rent'])}</td>
+        <td><span class="badge badge-amber">${l['Escalation %']}%</span></td>
+        <td>${viewBtn(idx)}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+function renderExpiring() {
+  const ls = filteredLeases('search-expiring','filter-expiring-prop',null)
+    .filter(l => { const d = daysFrom(l['Expiry Date']); return d !== null && d >= 0 && d <= settings.warnDays; })
+    .sort((a,b) => daysFrom(a['Expiry Date']) - daysFrom(b['Expiry Date']));
+  const tbody = document.getElementById('expiring-tbody');
+  if (ls.length === 0) { tbody.innerHTML = emptyRow(12, 'No leases expiring soon'); return; }
+  tbody.innerHTML = ls.map(l => {
+    const idx = leases.indexOf(l);
+    const days = daysFrom(l['Expiry Date']);
+    return `<tr>
+      <td class="mono">${l['Agreement ID']}</td>
+      <td>${l['Property']}</td><td>${l['Unit']}</td>
+      <td>${l['Tenant Name']}</td>
+      <td>${fmtDate(l['Start Date'])}</td>
+      <td>${fmtDate(l['Expiry Date'])}</td>
+      <td>${daysPill(days)}</td>
+      <td class="rent-cell">${fmtRent(l['Rent'])}</td>
+      <td>${reminder60(l)}</td>
+      <td>${reminder30(l)}</td>
+      <td>${statusBadge(l)}</td>
+      <td>${viewBtn(idx)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderEscalations() {
+  const ls = filteredLeases('search-escalations','filter-escalations-prop',null)
+    .filter(l => { const d = daysFrom(l['Escalation Date']); return d !== null && d >= 0 && d <= settings.escalationWarnDays; })
+    .sort((a,b) => daysFrom(a['Escalation Date']) - daysFrom(b['Escalation Date']));
+  const tbody = document.getElementById('escalations-tbody');
+  if (ls.length === 0) { tbody.innerHTML = emptyRow(11, 'No escalations due soon'); return; }
+  tbody.innerHTML = ls.map(l => {
+    const idx = leases.indexOf(l);
+    const days = daysFrom(l['Escalation Date']);
+    return `<tr>
+      <td class="mono">${l['Agreement ID']}</td>
+      <td>${l['Property']}</td><td>${l['Unit']}</td>
+      <td>${l['Tenant Name']}</td>
+      <td>${fmtDate(l['Escalation Date'])}</td>
+      <td>${daysPill(days)}</td>
+      <td class="rent-cell">${fmtRent(l['Rent'])}</td>
+      <td><span class="badge badge-amber">${l['Escalation %']}%</span></td>
+      <td class="rent-cell" style="color:var(--amber)">${newRent(l['Rent'],l['Escalation %'])}</td>
+      <td><a href="mailto:${l['Contact Email']}" style="color:var(--accent);font-size:12px">${l['Contact Email']}</a></td>
+      <td>${viewBtn(idx)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderActive() {
+  const ls = filteredLeases('search-active','filter-active-prop',null)
+    .filter(l => { const d = daysFrom(l['Expiry Date']); return d !== null && d >= 0; })
+    .sort((a,b) => daysFrom(a['Expiry Date']) - daysFrom(b['Expiry Date']));
+  const tbody = document.getElementById('active-tbody');
+  if (ls.length === 0) { tbody.innerHTML = emptyRow(11, 'No active agreements found'); return; }
+  tbody.innerHTML = ls.map(l => {
+    const idx = leases.indexOf(l);
+    const days = daysFrom(l['Expiry Date']);
+    return `<tr>
+      <td class="mono">${l['Agreement ID']}</td>
+      <td>${l['Property']}</td><td>${l['Unit']}</td>
+      <td>${l['Tenant Name']}</td>
+      <td>${fmtDate(l['Start Date'])}</td>
+      <td>${fmtDate(l['Expiry Date'])}</td>
+      <td>${daysPill(days)}</td>
+      <td class="rent-cell">${fmtRent(l['Rent'])}</td>
+      <td>${fmtDate(l['Escalation Date'])}</td>
+      <td>${statusBadge(l)}</td>
+      <td>${viewBtn(idx)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderExpired() {
+  const ls = filteredLeases('search-expired','filter-expired-prop',null)
+    .filter(l => { const d = daysFrom(l['Expiry Date']); return d !== null && d < 0; })
+    .sort((a,b) => daysFrom(b['Expiry Date']) - daysFrom(a['Expiry Date']));
+  const tbody = document.getElementById('expired-tbody');
+  if (ls.length === 0) { tbody.innerHTML = emptyRow(10, 'No expired agreements found'); return; }
+  tbody.innerHTML = ls.map(l => {
+    const idx = leases.indexOf(l);
+    const days = daysFrom(l['Expiry Date']);
+    return `<tr>
+      <td class="mono">${l['Agreement ID']}</td>
+      <td>${l['Property']}</td><td>${l['Unit']}</td>
+      <td>${l['Tenant Name']}</td>
+      <td>${fmtDate(l['Start Date'])}</td>
+      <td>${fmtDate(l['Expiry Date'])}</td>
+      <td><span class="days-pill expired">${Math.abs(days)}d ago</span></td>
+      <td class="rent-cell">${fmtRent(l['Rent'])}</td>
+      <td><a href="mailto:${l['Contact Email']}" style="color:var(--accent);font-size:12px">${l['Contact Email']}</a></td>
+      <td>${viewBtn(idx)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAll() {
+  const ls = filteredLeases('search-all','filter-all-prop','filter-all-status')
+    .sort((a,b) => (daysFrom(a['Expiry Date']) ?? 999999) - (daysFrom(b['Expiry Date']) ?? 999999));
+  const tbody = document.getElementById('all-tbody');
+  if (ls.length === 0) { tbody.innerHTML = emptyRow(12, 'No lease agreements found'); return; }
+  tbody.innerHTML = ls.map(l => {
+    const idx = leases.indexOf(l);
+    const days = daysFrom(l['Expiry Date']);
+    return `<tr>
+      <td class="mono">${l['Agreement ID']}</td>
+      <td>${l['Property']}</td><td>${l['Unit']}</td>
+      <td>${l['Tenant Name']}</td>
+      <td>${fmtDate(l['Start Date'])}</td>
+      <td>${fmtDate(l['Expiry Date'])}</td>
+      <td>${daysPill(days)}</td>
+      <td class="rent-cell">${fmtRent(l['Rent'])}</td>
+      <td>${fmtDate(l['Escalation Date'])}</td>
+      <td class="mono">${l['Escalation %']}%</td>
+      <td>${statusBadge(l)}</td>
+      <td>${viewBtn(idx)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────
+//  DETAIL MODAL
+// ──────────────────────────────────────
+function openDetail(idx) {
+  const l = leases[idx];
+  if (!l) return;
+  const days = daysFrom(l['Expiry Date']);
+  const daysEsc = daysFrom(l['Escalation Date']);
+  document.getElementById('modal-content').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-item"><label>Agreement ID</label><div class="value mono">${l['Agreement ID']}</div></div>
+      <div class="detail-item"><label>Status</label><div class="value">${statusBadge(l)}</div></div>
+      <div class="detail-item"><label>Property</label><div class="value">${l['Property']}</div></div>
+      <div class="detail-item"><label>Unit</label><div class="value">${l['Unit']}</div></div>
+      <div class="detail-item"><label>Tenant Name</label><div class="value">${l['Tenant Name']}</div></div>
+      <div class="detail-item"><label>Contact Email</label><div class="value"><a href="mailto:${l['Contact Email']}" style="color:var(--accent)">${l['Contact Email']}</a></div></div>
+    </div>
+    <hr class="divider">
+    <div class="detail-grid">
+      <div class="detail-item"><label>Start Date</label><div class="value">${fmtDate(l['Start Date'])}</div></div>
+      <div class="detail-item"><label>Expiry Date</label><div class="value">${fmtDate(l['Expiry Date'])}</div></div>
+      <div class="detail-item"><label>Days to Expiry</label><div class="value">${days !== null ? (days < 0 ? Math.abs(days) + ' days ago' : days + ' days') : '—'}</div></div>
+      <div class="detail-item"><label>Reminder 60</label><div class="value">${reminder60(l)}</div></div>
+      <div class="detail-item"><label>Reminder 30</label><div class="value">${reminder30(l)}</div></div>
+      <div class="detail-item"><label>Current Rent</label><div class="value mono" style="color:var(--green)">${fmtRent(l['Rent'])}</div></div>
+    </div>
+    <hr class="divider">
+    <div class="detail-grid">
+      <div class="detail-item"><label>Escalation Date</label><div class="value">${fmtDate(l['Escalation Date'])}</div></div>
+      <div class="detail-item"><label>Days to Escalation</label><div class="value">${daysEsc !== null ? (daysEsc < 0 ? Math.abs(daysEsc) + ' days ago' : daysEsc + ' days') : '—'}</div></div>
+      <div class="detail-item"><label>Escalation %</label><div class="value mono">${l['Escalation %']}%</div></div>
+      <div class="detail-item"><label>New Rent (Est.)</label><div class="value mono" style="color:var(--amber)">${newRent(l['Rent'], l['Escalation %'])}</div></div>
+    </div>
+    <hr class="divider">
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a href="mailto:${l['Contact Email']}?subject=Lease Renewal - ${l['Agreement ID']}&body=Dear ${l['Tenant Name']},%0A%0AYour lease agreement (${l['Agreement ID']}) for ${l['Property']}, Unit ${l['Unit']} is expiring on ${fmtDate(l['Expiry Date'])}.%0A%0APlease contact us to discuss renewal.%0A%0ARegards" class="btn btn-primary btn-sm">✉ Send Renewal Email</a>
+      <a href="mailto:${l['Contact Email']}?subject=Rent Escalation Notice - ${l['Agreement ID']}&body=Dear ${l['Tenant Name']},%0A%0APlease be informed that the rent for your unit (${l['Unit']}, ${l['Property']}) will be escalated by ${l['Escalation %']}%25 on ${fmtDate(l['Escalation Date'])}.%0A%0ANew rent: ${newRent(l['Rent'],l['Escalation %'])}%0A%0ARegards" class="btn btn-ghost btn-sm">📈 Send Escalation Notice</a>
+    </div>
+  `;
+  document.getElementById('detailModal').classList.add('open');
+}
+function closeModal(e) {
+  if (e.target === document.getElementById('detailModal'))
+    document.getElementById('detailModal').classList.remove('open');
+}
+
+// ──────────────────────────────────────
+//  NOTIFICATIONS
+// ──────────────────────────────────────
+function loadNotifLog() {
+  const n = localStorage.getItem('lv_notiflog');
+  if (n) notifLog = JSON.parse(n);
+  renderNotifLog();
+}
+function saveNotifLog() { localStorage.setItem('lv_notiflog', JSON.stringify(notifLog.slice(-100))); }
+
+function checkAndSendNotifications(verbose) {
+  if (leases.length === 0) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const checked = JSON.parse(localStorage.getItem('lv_notif_checked') || '{}');
+  let fired = 0;
+
+  leases.forEach(l => {
+    const days = daysFrom(l['Expiry Date']);
+    const daysEsc = daysFrom(l['Escalation Date']);
+    const id = l['Agreement ID'];
+
+    // Expiry 60-day
+    if (days !== null && days >= 0 && days <= 60) {
+      const key = `${id}_exp60`;
+      if (!checked[key]) {
+        fireNotif(l, '60-Day Expiry Reminder', `Lease for ${l['Tenant Name']} at ${l['Property']} (${l['Unit']}) expires in ${days} days.`, 'email');
+        fireNotif(l, '60-Day Expiry Alert', `${l['Tenant Name']} — ${days}d to expiry`, 'push');
+        checked[key] = today.toISOString();
+        fired++;
+      }
+    }
+    // Expiry 30-day
+    if (days !== null && days >= 0 && days <= 30) {
+      const key = `${id}_exp30`;
+      if (!checked[key]) {
+        fireNotif(l, '30-Day Expiry Alert', `URGENT: Lease for ${l['Tenant Name']} at ${l['Property']} expires in ${days} days!`, 'email');
+        fireNotif(l, '🔴 Critical Expiry Alert', `${l['Tenant Name']} — only ${days}d left!`, 'push');
+        checked[key] = today.toISOString();
+        fired++;
+      }
+    }
+    // Escalation 60-day
+    if (daysEsc !== null && daysEsc >= 0 && daysEsc <= 60) {
+      const key = `${id}_esc60`;
+      if (!checked[key]) {
+        fireNotif(l, 'Rent Escalation Due', `Rent for ${l['Tenant Name']} at ${l['Property']} (${l['Unit']}) escalates by ${l['Escalation %']}% in ${daysEsc} days.`, 'escalation');
+        checked[key] = today.toISOString();
+        fired++;
+      }
+    }
+  });
+
+  localStorage.setItem('lv_notif_checked', JSON.stringify(checked));
+  if (verbose && fired > 0) toast(`🔔 Sent ${fired} notification(s)`);
+  else if (verbose) toast('✅ All notifications up to date');
+}
+
+function fireNotif(lease, title, body, type) {
+  // Browser push
+  if (type === 'push' && Notification.permission === 'granted') {
+    try {
+      new Notification('LeaseVault: ' + title, {
+        body, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🏢</text></svg>'
+      });
+    } catch(e) {}
+  }
+  // Log
+  const entry = {
+    id: Date.now() + Math.random(),
+    type, title, body,
+    leaseId: lease['Agreement ID'],
+    tenant: lease['Tenant Name'],
+    property: lease['Property'],
+    time: new Date().toISOString()
+  };
+  notifLog.unshift(entry);
+  saveNotifLog();
+  renderNotifLog();
+}
+
+function renderNotifLog() {
+  const el = document.getElementById('notif-log');
+  if (!el) return;
+  if (notifLog.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🔔</div><h3>No notifications yet</h3><p>Sync your data and run notification checks to see alerts here.</p></div>`;
+    return;
+  }
+  el.innerHTML = notifLog.map(n => {
+    const icons = { email: '✉', push: '📲', escalation: '📈' };
+    const timeStr = new Date(n.time).toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+    return `<div class="notif-item">
+      <div class="notif-icon ${n.type}">${icons[n.type]||'🔔'}</div>
+      <div class="notif-body">
+        <div class="notif-title">${n.title}</div>
+        <div class="notif-meta">${n.body}</div>
+        <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
+          <span class="mono" style="font-size:11px;color:var(--text-dim)">${n.leaseId}</span>
+          ${n.type === 'email' ? `<a href="mailto:?subject=${encodeURIComponent(n.title)}&body=${encodeURIComponent(n.body)}" class="btn btn-ghost btn-sm">Open Email</a>` : ''}
+        </div>
+      </div>
+      <div class="notif-time">${timeStr}</div>
+    </div>`;
+  }).join('');
+}
+
+function updatePermBar() {
+  const wrap = document.getElementById('perm-bar-wrap');
+  if (!wrap) return;
+  if (Notification.permission === 'granted') {
+    wrap.innerHTML = '<div class="perm-bar"><b>🔔 Push notifications enabled</b><span>Browser alerts will fire for expiry and escalation events.</span></div>';
+  } else {
+    wrap.innerHTML = `<div class="perm-bar"><span>Enable browser push notifications for real-time alerts</span><button class="btn btn-primary btn-sm" onclick="requestPushPermission()">Enable Notifications</button></div>`;
+  }
+}
+
+async function requestPushPermission() {
+  if (!('Notification' in window)) { toast('⚠ Browser does not support notifications'); return; }
+  if (Notification.permission === 'granted') { toast('✅ Push notifications already enabled'); updatePermBar(); return; }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') { toast('✅ Push notifications enabled!'); updatePermBar(); }
+  else { toast('ℹ Push notifications blocked — enable in browser settings'); }
+}
+
+// ──────────────────────────────────────
+//  AUTO-SYNC
+// ──────────────────────────────────────
+function scheduleSyncTimer() {
+  if (syncTimer) clearInterval(syncTimer);
+  const mins = parseInt(settings.syncInterval);
+  if (mins > 0 && settings.sheetUrl) {
+    syncTimer = setInterval(fetchData, mins * 60 * 1000);
+  }
+}
+
+// ──────────────────────────────────────
+//  NAVIGATION
+// ──────────────────────────────────────
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page)?.classList.add('active');
+  document.getElementById('nav-' + page)?.classList.add('active');
+  currentPage = page;
+  if (page === 'notifications') renderNotifLog();
+}
+
+// ──────────────────────────────────────
+//  TOAST
+// ──────────────────────────────────────
+function toast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast'; el.textContent = msg;
+  document.getElementById('toastContainer').prepend(el);
+  setTimeout(() => el.remove(), 4000);
+}
+</script>
+</body>
+</html>
